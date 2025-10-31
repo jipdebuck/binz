@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "binz"
+version = "0.0.1"
+authors = [
+  { name="Jip de Buck", email="j.b.de.buck@umail.leidenuniv.nl" },
+]
+description = "A package for n(z) reconstruction from Gaussian processes"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/jipdebuck/binz"
+Issues = "https://github.com/jipdebuck/binz/issues"
