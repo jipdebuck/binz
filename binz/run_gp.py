@@ -18,7 +18,7 @@ def run_gp(dndz, z, z_pred, ell):
         cdf /= cdf[-1]
         z_med = np.interp(0.5, cdf, z)
         n_med = nz[np.argmin(np.abs(z - z_med))]
-        kernel = C(sigma_amp, (1e-4, 1.0)) * Matern(length_scale=ell, nu=1.5, length_scale_bounds="fixed")
+        kernel = C(0.04, (1e-4, 1.0)) * Matern(length_scale=ell, nu=1.5, length_scale_bounds="fixed")
 
         gp = GaussianProcessRegressor(kernel=kernel, optimizer=None, normalize_y=False, alpha=1e-8)
 
