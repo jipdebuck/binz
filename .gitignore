@@ -7,3 +7,4 @@ dist/
 *.npy
 *.npz
 *.fits
+*.h5
