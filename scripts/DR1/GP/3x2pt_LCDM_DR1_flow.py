@@ -40,7 +40,7 @@ from sklearn.gaussian_process.kernels import (
     RBF, Matern, ConstantKernel as C
 )
 
-name_to_chain_gp = '3x2pt_LCDM_DR1_flow_bin_1'
+name_to_chain_gp = '3x2pt_LCDM_DR1_flow_jac'
 
 myz = np.linspace(1e-4, 3.0, 100)
 def normalize_dndz(nz_example, z_nz):
@@ -458,18 +458,18 @@ def build_flow(M, n_layers=5, hidden_features=64):
     return Flow(transform, base)
 print("Retrieving saved flows")
 flow_she_bin1 = build_flow(M=5)
-flow_she_bin1.load_state_dict(torch.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_she_bin1.pt", map_location="cpu"))
+flow_she_bin1.load_state_dict(torch.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_bin1.pt", map_location="cpu"))
 flow_she_bin1.eval()
 
-flow_mean_she = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_mean_she.npy")
-flow_std_she  = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_std_she.npy")
+flow_mean_she = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_mean_bin1.npy")
+flow_std_she  = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_std_bin1.npy")
 
 flow_pos_bin1 = build_flow(M=5)
-flow_pos_bin1.load_state_dict(torch.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_pos_bin1.pt", map_location="cpu"))
+flow_pos_bin1.load_state_dict(torch.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_bin1.pt", map_location="cpu"))
 flow_pos_bin1.eval()
 
-flow_mean_pos = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_mean_pos.npy")
-flow_std_pos  = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/trained_flows/flow_std_pos.npy")
+flow_mean_pos = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_mean_bin1.npy")
+flow_std_pos  = np.load("/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_2/trained_flows/flow_std_bin1.npy")
 print("Done!")
 # Priors
 zmean_dr1 = np.array([0.4371, 0.726, 0.9424, 1.164, 1.437, 1.963])
@@ -490,18 +490,18 @@ prior_gp.add_parameter('b1_photo_poly2', dist=(-3.0, 3.0))
 prior_gp.add_parameter('b1_photo_poly3', dist=(-3.0, 3.0))
 prior_gp.add_parameter('multiplicative_bias_1', norm(loc=0.0, scale=0.01))
 prior_gp.add_parameter('magnification_bias_1', dist=(-2.0, 2.0))
-prior_gp.add_parameter('y1_she', dist= (0.1, 1.1))
-prior_gp.add_parameter('y2_she', dist= (1.5, 2.5))
-prior_gp.add_parameter('y3_she', dist= (2.2, 3.2))
-prior_gp.add_parameter('y4_she', dist= (2.3, 3.3))
-prior_gp.add_parameter('y5_she', dist= (0.8, 1.8))
-prior_gp.add_parameter('log_l_she', dist=(np.log(0.001), np.log(1)))
-prior_gp.add_parameter('y1_pos', dist= (0.1, 1.1))
-prior_gp.add_parameter('y2_pos', dist= (1.5, 2.5))
-prior_gp.add_parameter('y3_pos', dist= (2.2, 3.2))
-prior_gp.add_parameter('y4_pos', dist= (2.3, 3.3))
-prior_gp.add_parameter('y5_pos', dist= (0.8, 1.8))
-prior_gp.add_parameter('log_l_pos', dist=(np.log(0.001), np.log(1)))
+prior_gp.add_parameter('y1_she', dist= (0.3, 2))
+prior_gp.add_parameter('y2_she', dist= (2, 5))
+prior_gp.add_parameter('y3_she', dist= (3, 6))
+prior_gp.add_parameter('y4_she', dist= (3.5, 6.5))
+prior_gp.add_parameter('y5_she', dist= (1, 4))
+prior_gp.add_parameter('log_l_she', dist=(np.log(0.04), np.log(0.07)))
+prior_gp.add_parameter('y1_pos', dist= (0.3, 2))
+prior_gp.add_parameter('y2_pos', dist= (2, 5))
+prior_gp.add_parameter('y3_pos', dist= (3, 6))
+prior_gp.add_parameter('y4_pos', dist= (3.5, 6.5))
+prior_gp.add_parameter('y5_pos', dist= (1, 4))
+prior_gp.add_parameter('log_l_pos', dist=(np.log(0.04), np.log(0.07)))
 
 print("✨ Prior set up completed.")
 print("Parameters sampled: ", prior_gp.keys)
@@ -511,7 +511,7 @@ n_meds_she = [None]*5
 n_meds_pos = [None]*5
 
 step_counter = 0
-save_every = 600
+save_every = 100
 def like_Naut_test_gp(param_dict):
     # Enforce physical prior on w0 + wa
 #    if param_dict['w0'] + param_dict['wa'] > -1. / 3:
@@ -557,12 +557,14 @@ def like_Naut_test_gp(param_dict):
     logp_flow_pos = flow_pos_bin1.log_prob(
         torch.tensor(U_pos_norm[None, :], dtype=torch.float32)
     ).item()
+    logp_she = logp_flow_she - np.sum(np.log(n_meds_she))
+    logp_pos = logp_flow_pos - np.sum(np.log(n_meds_pos))
 
     # --- Total log-likelihood ---
-    logL_total = logL + logp_flow_she + logp_flow_pos
+    logL_total = logL + logp_she + logp_pos
     if step_counter % save_every == 0:
-        step = {"params": param_dict.copy(), "dndz_norm": my_dndz_norm_gp_she.copy(), "loglike": logL_total, "C_ell": like_instance.theory_prediction}
-        np.save(f"/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_bin1/saved_steps/gp_sampling_step_{step_counter/200}.npy", step)
+        step = {"params": param_dict.copy(), "dndz_norm": my_dndz_norm_gp_she.copy(), "loglike": logL_total, "logprior": logp_she + logp_pos, "C_ell": like_instance.theory_prediction}
+        np.save(f"/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/chains/DR1/GP/norm_flow_jac/saved_steps/gp_sampling_step_{step_counter/100}.npy", step)
     step_counter += 1
     return (logL_total, sigma_8)
 
@@ -571,7 +573,7 @@ blob_vec = [('sigma8_0', float)]
 if __name__ == '__main__':
     with get_context("spawn").Pool(32) as p:
         sampler = Sampler(prior_gp, like_Naut_test_gp, 
-                              n_live=3000, pool=p,
+                              n_live=5000, pool=p,
                               blobs_dtype=blob_vec,
             filepath=name_to_chain_gp + '.h5', 
             resume=True)
