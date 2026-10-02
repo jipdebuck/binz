@@ -21,3 +21,6 @@ license-files = ["LICEN[CS]E*"]
 [project.urls]
 Homepage = "https://github.com/jipdebuck/binz"
 Issues = "https://github.com/jipdebuck/binz/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["binz"]
