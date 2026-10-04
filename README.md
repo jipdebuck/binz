@@ -7,4 +7,14 @@ A redshift distribution reconstruction package using Gaussian processes and norm
 2. **Normalising flows** to construct a data-driven prior on the GP hyperparameters from an ensemble of redshift distributions. `binz` also includes functions to generate such an ensemble based on simple shifts and stretches in the original $n(z)$.
 
 ## Installation
+To install `binz`, first clone the repository to your local machine:
+```
+git clone https://github.com/jipdebuck/binz.git
+```
+Then, from the root directory of `binz`:
+```
+pip install .
+```
+
+
 
