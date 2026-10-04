@@ -47,8 +47,3 @@ log_prob = get_flow_log_prob(flow_b, mean_b, std_b, x_nodes, y_nodes, ell)
 
 ## Licence
 `binz` is distributed under the MIT license. 
-```
-**Note**: The normalising flow provides a data-driven prior on the GP hyperparameters, but the GP-based $n(z)$ reconstruction can also be used independently. For more detailed examples, see the example notebooks in the `notebooks` folder. 
-   
-
-
