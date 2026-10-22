@@ -1,4 +1,7 @@
-# binz
+<p align="center">
+  <img src="docs/binz_logo.png" alt="binz logo" width="250">
+</p>
+
 A redshift distribution reconstruction package using Gaussian processes and normalising flows to construct priors on $n(z)$ hyperparameters for cosmological inference.
 
 ## Overview
