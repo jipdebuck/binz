@@ -14,9 +14,13 @@ To install `binz`, first clone the repository to your local machine:
 ```
 git clone https://github.com/jipdebuck/binz.git
 ```
-Then, from the root directory of `binz` (dependencies will be installed automatically):
+Then, from the root directory of `binz` (non-flow dependencies will be installed automatically):
 ```
 pip install .
+```
+To install `binz` with normalising-flow support (note that installing `torch` can take considerable time):
+```
+pip install ".[flows]"
 ```
 **Note**: some external packages (`cloelib`, `cloelike`, `euclidlib`, `mpi4py`, and `dynesty`) required to run the scripts in `binz/scripts` are not included in the package dependencies and must be installed separately. 
 
