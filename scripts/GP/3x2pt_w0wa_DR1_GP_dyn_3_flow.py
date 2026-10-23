@@ -403,12 +403,12 @@ stds_pos = []
 
 # Note: the .pt files should contain the *trained* flows. These should be trained beforehand using norm_flow_per_bin (see example notebooks)
 for b in range(6):
-    flow_she = build_flow(M=3)
+    flow_she = build_flow(M=3) # the flow needs to have the same architecture as the trained flow!
     flow_she.load_state_dict(torch.load(f"flow_bin_{b+1}.pt", map_location="cpu"))
     flow_she.eval()
     flows_she.append(flow_she)
 
-    flow_pos = build_flow(M=3)
+    flow_pos = build_flow(M=3) # the flow needs to have the same architecture as the trained flow!
     flow_pos.load_state_dict(torch.load(f"flow_bin_{b+1}.pt", map_location="cpu"))
     flow_pos.eval()
     flows_pos.append(flow_pos)
