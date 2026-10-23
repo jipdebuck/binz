@@ -70,7 +70,7 @@ def generate_bin1_ensemble(nz, N_ens=5, z_lo=0.001, z_hi=6, N_z=3001, mean_shift
     return z, np.array(ensemble)
 
 def fit_gp_params(z_grid, nz, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=0.04, alpha=1e-8, kernel_class=RBF, nu=1.5, qmin=0.05, qmax=0.95, 
-                            maxiter=1000):
+                            maxiter=1000, use_peak = False):
     """
     Fit the GP x-nodes, y-nodes, and correlation length to a single n(z) realisation from the ensemble.
 
@@ -100,6 +100,8 @@ def fit_gp_params(z_grid, nz, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=0.04,
         Quantile where last node should be positioned.
     maxiter : int
         Maximum number of iterations in the fitting process. 
+    use_peak : bool
+        If True, central node of initial guess is positioned at the peak.
 
     Returns 
     -----------
@@ -110,7 +112,7 @@ def fit_gp_params(z_grid, nz, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=0.04,
     """
 
     zmin, zmax = z_bounds
-    x_init_all, y_init_all = compute_cdf_nodes(z_grid, {1: nz}, M=M, qmin=qmin, qmax=qmax)
+    x_init_all, y_init_all = compute_cdf_nodes(z_grid, {1: nz}, M=M, qmin=qmin, qmax=qmax, use_peak = use_peak)
     x_init = x_init_all[0]
     y_init = y_init_all[0]
     p0 = np.concatenate([x_init, np.log(y_init), [np.log(ell_init)]]) # initial param vector
@@ -155,7 +157,7 @@ def fit_gp_params(z_grid, nz, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=0.04,
     return GP_params, result
 
 def fit_params_ens(z_grid, nz_ens, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=0.04, alpha=0.0, kernel_class=RBF, nu=1.5, qmin=0.05,
-    qmax=0.95, maxiter=1000):
+    qmax=0.95, maxiter=1000, use_peak=False):
     """
     Fit the GP x-nodes, y-nodes, and correlation length to the full ensemble of n(z)'s.
     
@@ -185,6 +187,8 @@ def fit_params_ens(z_grid, nz_ens, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=
         Quantile where last node should be positioned.
     maxiter : int
         Maximum number of iterations in the fitting process. 
+    use_peak : bool
+        If True, central node of initial guess is positioned at the peak
     
     Returns 
     -----------
@@ -198,7 +202,7 @@ def fit_params_ens(z_grid, nz_ens, M=5, z_bounds=(0.0, 3.0), ell_init=0.03, amp=
     for k, nz in enumerate(nz_ens):
         print(f"Fitting realisation {k+1}/{len(nz_ens)}")
         params, result = fit_gp_params(z_grid=z_grid, nz=nz, M=M, z_bounds=z_bounds, ell_init=ell_init, amp=amp, alpha=alpha, 
-                                                 kernel_class=kernel_class, nu=nu, qmin=qmin, qmax=qmax, maxiter=maxiter)
+                                                 kernel_class=kernel_class, nu=nu, qmin=qmin, qmax=qmax, maxiter=maxiter, use_peak=use_peak)
         GP_params_list.append(params)
         results.append(result)
     GP_params = np.stack(GP_params_list, axis=0)

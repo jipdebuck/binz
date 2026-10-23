@@ -69,14 +69,13 @@ def x_log1p(z, zmax):
     x = np.log1p(z) / np.log1p(zmax)
     return x
 
-def compute_cdf_nodes(z_grid, nz_org, M=3, qmin=0.05, qmax=0.95):
+def compute_cdf_nodes(z_grid, nz_org, M=3, qmin=0.05, qmax=0.95, use_peak=True):
     """
     Compute training node positions based on CDF. 
 
-    For M = 1, the node is positioned at the peak.
-    For M = 3, the central node is positioned at the peak.
-    For other values of M, all nodes are positioned at equally-spaced 
-    quantiles between qmin and qmax
+    If use_peak = True, the central node is positioned at the peak.
+    If not, all nodes are positioned at equally-spaced 
+    quantiles between qmin and qmax.
     
     Parameters 
     -----------
@@ -90,6 +89,10 @@ def compute_cdf_nodes(z_grid, nz_org, M=3, qmin=0.05, qmax=0.95):
         Quantile where first node should be positioned.
     qmax : float
         Quantile where last node should be positioned. 
+    use_peak : bool
+        If True, the central node is positioned at the peak of the distribution
+        If False, all nodes are positioned at equally-spaced quantiles between qmin and qmax
+    
     
     Returns 
     -----------
@@ -104,7 +107,7 @@ def compute_cdf_nodes(z_grid, nz_org, M=3, qmin=0.05, qmax=0.95):
     for key, nz in nz_org.items():
         cdf = integrate.cumulative_trapezoid(nz, z_grid, initial=0)
         cdf /= cdf[-1]
-        if M == 1 or M == 3:
+        if use_peak:
             z_peak = z_grid[np.argmax(nz)] # one node always at the peak
             if M > 1: # others at quantiles
                 quantiles = np.linspace(qmin, qmax, M)
