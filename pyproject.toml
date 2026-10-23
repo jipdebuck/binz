@@ -11,13 +11,16 @@ authors = [
 description = "A package for n(z) reconstruction from Gaussian processes"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["numpy", "scipy", "scikit-learn", "tqdm", "torch", "nflows",]
+dependencies = ["numpy", "scipy", "scikit-learn", "tqdm",]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
+
+[project.optional-dependencies]
+flows = ["torch", "nflows",]
 
 [project.urls]
 Homepage = "https://github.com/jipdebuck/binz"
