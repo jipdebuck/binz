@@ -14,7 +14,7 @@ To install `binz`, first clone the repository to your local machine:
 ```
 git clone https://github.com/jipdebuck/binz.git
 ```
-Then, from the root directory of `binz`:
+Then, from the root directory of `binz` (note that dependencies will be installed automatically):
 ```
 pip install .
 ```
