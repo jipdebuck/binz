@@ -7,16 +7,17 @@ os.environ["OMP_NUM_THREADS"] = "1"
 #os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 #os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-
 import numpy as np
+from scipy.interpolate import interp1d
 from scipy import integrate
-from multiprocessing import get_context
+from copy import deepcopy
 import time
+from mpi4py.futures import MPIPoolExecutor
+import sys
 
-
-from nautilus import Prior
-from nautilus import Sampler
+import dynesty
 from scipy.stats import norm
+
 # Import euclidlib for reading the Euclid data
 import euclidlib as el
 
@@ -31,7 +32,7 @@ from cloelike.EuclidLikelihood_photo_Cls import EuclidLikelihood_3x2pt
 
 # We read with euclidlib v2025.2 (v2025.1 is also compatible)
 
-name_to_chain = '3x2pt_w0wa_DR1'
+name_to_chain = '3x2pt_w0wa_DR1_dyn_shifts'
 
 #cells_data = el.photo.harmonic_space.angular_power_spectra('/disks/shear16/canasherrera/SheariouslyCalibrated/data/DR1/synthetic_angular_spectra_DR1.fits')
 full_cov=np.load('/leonardo_work/EUHPC_E07_074/jdebuck0/gp_project/data/covariance_Gauss_DR1_TR1like_1589_2D.npz')['Gauss']
@@ -47,9 +48,6 @@ def normalize_and_resample(nz_dict, z_grid, z_target):
 
 my_dndz_pos_norm = normalize_and_resample(nz_heracles, z_nz, myz)
 my_dndz_she_norm = normalize_and_resample(nz_heracles, z_nz, myz)
-
-
-
 
 fiducial_cosmology = {
     'H0': 67,                # Hubble constant
@@ -229,8 +227,6 @@ data_3x2pt  = build_data(uncoupled_cls, ('SHE', 'SHE', 1, 1),
                              include_pos=True, include_she=True)
 settings_3x2pt  = build_settings(uncoupled_cls)
 
-print('New settings:', settings_3x2pt)
-
 like_instance = EuclidLikelihood_3x2pt(
         data=data_3x2pt,
         settings=settings_3x2pt,
@@ -241,138 +237,174 @@ like_instance = EuclidLikelihood_3x2pt(
 
     )
 
-
 loglike = like_instance.loglike(fiducial_cosmology | fiducial_nuisance)
 print("✨ Log-likelihood at fiducial: ", loglike)
 
 # Priors
 zmean_dr1 = np.array([0.4371, 0.726, 0.9424, 1.164, 1.437, 1.963])
 
-# Set priors
-prior = Prior()
-prior.add_parameter('Omega_b0', dist=(0.01, 0.1))
-prior.add_parameter('Omega_cdm0', dist=(0.1, 0.8))
-prior.add_parameter('logAs', dist=(np.log(0.6e-9*1e10), np.log(5e-9*1e10)))
-prior.add_parameter('ns', dist=(0.6, 1.2))
-prior.add_parameter('H0', dist=(50, 90))
-prior.add_parameter('AIA', dist=(-1, 1))
-prior.add_parameter('EtaIA', dist=(-5, 5))
-prior.add_parameter('w0', dist=(-3.0, -0.5)) 
-prior.add_parameter('wa', dist=(-3.0, 3.0))
-prior.add_parameter('b1_photo_poly0', dist=(-3.0, 3.0))
-prior.add_parameter('b1_photo_poly1', dist=(-3.0, 3.0))
-prior.add_parameter('b1_photo_poly2', dist=(-3.0, 3.0))
-prior.add_parameter('b1_photo_poly3', dist=(-3.0, 3.0))
-prior.add_parameter('multiplicative_bias_1', norm(loc=0.0, scale=0.01))
-prior.add_parameter('multiplicative_bias_2', norm(loc=0.0, scale=0.01))
-prior.add_parameter('multiplicative_bias_3', norm(loc=0.0, scale=0.01))
-prior.add_parameter('multiplicative_bias_4', norm(loc=0.0, scale=0.01))
-prior.add_parameter('multiplicative_bias_5', norm(loc=0.0, scale=0.01))
-prior.add_parameter('multiplicative_bias_6', norm(loc=0.0, scale=0.01)) 
-prior.add_parameter('magnification_bias_1', dist=(-2.0, 2.0))
-prior.add_parameter('magnification_bias_2', dist=(-2.0, 2.0))
-prior.add_parameter('magnification_bias_3', dist=(-2.0, 2.0))
-prior.add_parameter('magnification_bias_4', dist=(-2.0, 2.0))
-prior.add_parameter('magnification_bias_5', dist=(-2.0, 2.0))
-prior.add_parameter('magnification_bias_6', dist=(-2.0, 2.0))
-prior.add_parameter('dz_pos_1', norm(loc=0.0, scale=0.002*(1+zmean_dr1[0])))
-prior.add_parameter('dz_pos_2', norm(loc=0.0, scale=0.002*(1+zmean_dr1[1])))
-prior.add_parameter('dz_pos_3', norm(loc=0.0, scale=0.002*(1+zmean_dr1[2])))
-prior.add_parameter('dz_pos_4', norm(loc=0.0, scale=0.002*(1+zmean_dr1[3])))
-prior.add_parameter('dz_pos_5', norm(loc=0.0, scale=0.002*(1+zmean_dr1[4])))
-prior.add_parameter('dz_pos_6', norm(loc=0.0, scale=0.002*(1+zmean_dr1[5])))
-prior.add_parameter('width_pos_1', norm(loc=1, scale=0.1))
-prior.add_parameter('width_pos_2', norm(loc=1, scale=0.1))
-prior.add_parameter('width_pos_3', norm(loc=1, scale=0.1))
-prior.add_parameter('width_pos_4', norm(loc=1, scale=0.1))
-prior.add_parameter('width_pos_5', norm(loc=1, scale=0.1))
-prior.add_parameter('width_pos_6', norm(loc=1, scale=0.1))
-prior.add_parameter('dz_shear_1', norm(loc=0.0, scale=0.002*(1+zmean_dr1[0])))
-prior.add_parameter('dz_shear_2', norm(loc=0.0, scale=0.002*(1+zmean_dr1[1])))
-prior.add_parameter('dz_shear_3', norm(loc=0.0, scale=0.002*(1+zmean_dr1[2])))
-prior.add_parameter('dz_shear_4', norm(loc=0.0, scale=0.002*(1+zmean_dr1[3])))
-prior.add_parameter('dz_shear_5', norm(loc=0.0, scale=0.002*(1+zmean_dr1[4])))
-prior.add_parameter('dz_shear_6', norm(loc=0.0, scale=0.002*(1+zmean_dr1[5])))
-prior.add_parameter('width_shear_1', norm(loc=1, scale=0.1))
-prior.add_parameter('width_shear_2', norm(loc=1, scale=0.1))
-prior.add_parameter('width_shear_3', norm(loc=1, scale=0.1))
-prior.add_parameter('width_shear_4', norm(loc=1, scale=0.1))
-prior.add_parameter('width_shear_5', norm(loc=1, scale=0.1))
-prior.add_parameter('width_shear_6', norm(loc=1, scale=0.1))
+# --- Dynesty prior: parameter names and prior_transform ---
+
+param_names = [
+    'Omega_b0', 'Omega_cdm0', 'logAs', 'ns', 'H0',
+    'AIA', 'EtaIA', 
+    'b1_photo_poly0', 'b1_photo_poly1', 'b1_photo_poly2', 'b1_photo_poly3',
+]
+param_names += [f'multiplicative_bias_{i}' for i in range(1, 7)]
+param_names += [f'magnification_bias_{i}' for i in range(1, 7)]
+param_names += [f'dz_pos_{i}' for i in range(1, 7)]
+param_names += [f'dz_shear_{i}' for i in range(1, 7)]
+#param_names += [f'width_pos_{i}' for i in range(1, 7)]
+#param_names += [f'width_shear_{i}' for i in range(1, 7)]
+param_names += ['w0', 'wa']
+
+ndim = len(param_names)  
+
+# Pre-compute logAs bounds for efficiency
+_logAs_lo = np.log(0.6e-9 * 1e10)
+_logAs_hi = np.log(5e-9 * 1e10)
+
+def prior_transform(u):
+    """Maps unit-cube samples u ~ Unif[0,1)^ndim to the parameter space."""
+    v = np.empty(ndim)
+    # Cosmology + IA + bias (uniform priors)
+    v[0]  = 0.01 + (0.1   - 0.01 ) * u[0]   # Omega_b0     [0.01, 0.1)
+    v[1]  = 0.1  + (0.8   - 0.1  ) * u[1]   # Omega_cdm0   [0.1, 0.8)
+    v[2]  = _logAs_lo + (_logAs_hi - _logAs_lo) * u[2]  # logAs
+    v[3]  = 0.6  + (1.2   - 0.6  ) * u[3]   # ns           [0.6, 1.2)
+    v[4]  = 50.  + (90.   - 50.  ) * u[4]   # H0           [50, 90)
+    v[5]  = -1.  + 2.              * u[5]   # AIA          [-1, 1)
+    v[6]  = -5.  + 10.             * u[6]   # EtaIA        [-5, 5)
+#    v[7]  = -3.  + 2.5             * u[7]   # w0           [-3.0, -0.5)
+#    v[8]  = -3.  + 6.              * u[8]   # wa           [-3.0, 3.0)
+    v[7]  = -3.  + 6.              * u[7]   # b1_photo_poly0
+    v[8] = -3.  + 6.              * u[8]  # b1_photo_poly1
+    v[9] = -3.  + 6.              * u[9]  # b1_photo_poly2
+    v[10] = -3.  + 6.              * u[10]  # b1_photo_poly3
+    # multiplicative_bias_1..6 ~ N(0, 0.01)
+    for i in range(6):
+        v[11 + i] = norm.ppf(u[11 + i], loc=0.0, scale=0.01)
+    # magnification_bias_1..6 ~ Uniform[-2, 2)
+    for i in range(6):
+        v[17 + i] = -2.0 + 4.0 * u[17 + i]
+    # dz_pos_1..6 ~ N(0, 0.002*(1+zmean))
+    for i in range(6):
+        v[23 + i] = norm.ppf(u[23 + i], loc=0.0, scale=0.002 * (1 + zmean_dr1[i]))
+    # dz_shear_1..6 ~ N(0, 0.002*(1+zmean))
+    for i in range(6):
+        v[29 + i] = norm.ppf(u[29 + i], loc=0.0, scale=0.002 * (1 + zmean_dr1[i]))
+    v[35] = -3 + (-0.5 + 3) * u[35] # w0 [-3, -0.5]
+    v[36] = -3 + (3 + 3) * u[36] # wa [-3, 3]
+    # width_pos_1..6 ~ N(1, 0.1)
+#    for i in range(6):
+#        v[35 + i] = norm.ppf(u[35 + i], loc=1, scale=0.1)
+    # width_shear_1..6 ~ N(1, 0.1)
+#    for i in range(6):
+#        v[41 + i] = norm.ppf(u[41 + i], loc=1, scale=0.1)
+    return v
 
 print("✨ Prior set up completed.")
-print("Parameters sampled: ", prior.keys)
-print("Number of sampled parameters:", len(prior.keys))
+print("Parameters sampled: ", param_names)
+print("Number of sampled parameters:", ndim)
 
 default_pars = fiducial_cosmology | fiducial_nuisance
 
-def like_Naut_test(param_dict):
+def loglike_dynesty(v):
+    """Full 3x2pt log-likelihood with sigma8 as a blob."""
+    param_dict = dict(zip(param_names, v))
+
     # Enforce physical prior on w0 + wa
     if param_dict['w0'] + param_dict['wa'] > -1. / 3:
-        return (-np.inf, 0)
+        return (-np.inf, np.array([0.0]))
 
     pars_in = default_pars.copy()
     pars_in.update(param_dict)
-
-    #h = pars_in['H0'] / 100.0
-    #pars_in['Omega_cdm0'] = param_dict['omch2'] / h**2
-    #pars_in['Omega_b0'] = param_dict['ombh2'] / h**2
     pars_in['As'] = np.exp(param_dict['logAs']) * 1e-10
-    return (like_instance.loglike(pars_in), like_instance.derived['sigma8_0'])
 
-blob_vec     = [('sigma8_0', float)]
+    logl = like_instance.loglike(pars_in)
+    sigma8 = like_instance.derived['sigma8_0']
+
+    return (logl, np.array([sigma8]))
 
 if __name__ == '__main__':
-    with get_context("spawn").Pool(32) as p:
-        sampler = Sampler(prior, like_Naut_test, 
-            n_live=10000, pool=p,
-            blobs_dtype=blob_vec,
-            filepath=name_to_chain + '.h5', 
-            resume=True)
-        t_start = time.time()
-        print('Starting sampling...')
-        sampler.run(verbose=True)
-        t_end = time.time()
-        total_seconds = t_end - t_start
-        days = int(total_seconds // 86400)
-        hours = int((total_seconds % 86400) // 3600)
-        minutes = int((total_seconds % 3600) // 60)
-        seconds = int(total_seconds % 60)
-        print(f'Total time: {days}d {hours}h {minutes}m {seconds}s')    
-        print('Sampling finished!')
-        print('Saving chains...')
 
-        points, log_w, log_l, derived = sampler.posterior(return_blobs=True)
-        log_z = sampler.log_z
+    checkpoint_file = name_to_chain + '_dynesty.save'
+    pool = MPIPoolExecutor()
+#    pool = MPIPool()
+#    if not pool.is_master():
+#      pool.wait()
+#      sys.exit(0)
+
+    # 100 workers to match the original Nautilus pool size
+#    with DynestyPool(32, loglike_dynesty, prior_transform) as pool:
+
+    if os.path.exists(checkpoint_file):
+        print('Resuming from checkpoint...')
+        sampler = dynesty.DynamicNestedSampler.restore(
+                checkpoint_file, pool=pool
+            )
+    else:
+        sampler = dynesty.DynamicNestedSampler(
+                loglike_dynesty,
+                prior_transform,
+                ndim,
+                nlive=ndim*50,      # increased from 500: better bounding in 65D
+                pool=pool,
+                blob=True,       # store sigma8 alongside each sample
+                sample='rslice', # reflective slice sampling: far better than rwalk in high-D (avoids high nc)
+                bound='multi',   # multi-ellipsoid bounding (explicit)
+                bootstrap=0,     # skip bootstrap resampling → faster bounding updates
+                enlarge=1.25,    # ellipsoid enlargement factor
+                slices=10,       # number of slice directions per update
+                queue_size=128
+            )
+
+    t_start = time.time()
+    print('Starting sampling...')
+
+    sampler.run_nested(
+            dlogz_init=0.01,        # convergence on evidence
+            n_effective=10000,      # also stop when ESS >= 10000 (whichever comes first)
+            print_progress=True,
+            checkpoint_file=checkpoint_file,
+            checkpoint_every=300,   # checkpoint every 5 min
+            resume=os.path.exists(checkpoint_file),
+        )
+
+    t_end = time.time()
+    total_seconds = t_end - t_start
+    days    = int(total_seconds // 86400)
+    hours   = int((total_seconds % 86400) // 3600)
+    minutes = int((total_seconds % 3600) // 60)
+    seconds = int(total_seconds % 60)
+    print(f'Total time: {days}d {hours}h {minutes}m {seconds}s')
+    print('Sampling finished!')
+    print('Saving chains...')
+
+    results = sampler.results
 
         # --- Sampled parameters ---
-        param_names = list(prior.keys)
-        chain_dict = {
-            	name: points[:, i]
-            	for i, name in enumerate(param_names)
-        	}
-
-        # --- Derived parameters ---
-        derived_names = [name for name, _ in blob_vec]
-
-        derived_dict = {
-            derived_names[0]: np.array([sample[0] for sample in derived])
+    chain_dict = {
+            name: results.samples[:, i]
+            for i, name in enumerate(param_names)
         }
 
-# --- Save everything in a labelled way ---
-        np.savez_compressed(
-        name_to_chain + '.npz',
-        chain=chain_dict,
-        time=total_seconds,
-        derived=derived_dict,
-        weights=log_w,
-        logl=log_l,
-        logz=log_z,
-        param_names=param_names,
-        derived_names=derived_names
-    )
+        # --- Derived parameters (sigma8 from blob) ---
+    sigma8_arr = results.blob[:, 0]
+    derived_dict = {'sigma8_0': sigma8_arr}
 
-        print('Chains saved with name:', name_to_chain + '.npz')
+        # --- Save everything in a labelled way ---
+    np.savez_compressed(
+            name_to_chain + '.npz',
+            chain=chain_dict,
+            derived=derived_dict,
+            weights=results.logwt,
+            logl=results.logl,
+            logz=results.logz,
+            time=total_seconds,
+            param_names=param_names,
+            derived_names=['sigma8_0'],
+        )
 
-
+    print('Chains saved with name:', name_to_chain + '.npz')
 
