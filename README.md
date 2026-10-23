@@ -14,10 +14,11 @@ To install `binz`, first clone the repository to your local machine:
 ```
 git clone https://github.com/jipdebuck/binz.git
 ```
-Then, from the root directory of `binz` (note that dependencies will be installed automatically):
+Then, from the root directory of `binz` (dependencies will be installed automatically):
 ```
 pip install .
 ```
+Note that some external packages (`cloelib`, `cloelike`, `euclidlib`, `mpi4py`, and `dynesty`) required to run the scripts in binz/scripts are not included in the package dependencies and must be installed separately. 
 
 ## Usage
 Running `binz` starts with the tomographic redshift distributions $n(z)$, after which a typical workflow is the following: 
