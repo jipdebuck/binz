@@ -18,7 +18,7 @@ Then, from the root directory of `binz` (dependencies will be installed automati
 ```
 pip install .
 ```
-Note that some external packages (`cloelib`, `cloelike`, `euclidlib`, `mpi4py`, and `dynesty`) required to run the scripts in `binz/scripts` are not included in the package dependencies and must be installed separately. 
+**Note**: some external packages (`cloelib`, `cloelike`, `euclidlib`, `mpi4py`, and `dynesty`) required to run the scripts in `binz/scripts` are not included in the package dependencies and must be installed separately. 
 
 ## Usage
 Running `binz` starts with the tomographic redshift distributions $n(z)$, after which a typical workflow is the following: 
